@@ -200,25 +200,22 @@ void loop() {
           Serial.println(String("Current level: ") + currentLevel);
         }
       }
-
-    }
-    
-    if(ir_receivedCode == ircode_volumeUp) {
-      Serial.println("Step Volume Up");
-      currentLevel += levelStep;
-    }
-    if(ir_receivedCode == ircode_volumeDown) {
-      Serial.println("Step Volume Down");
-      currentLevel -= levelStep;
-    }
-    if(currentLevel > maxLevel) {
-      currentLevel = maxLevel;
-    }
-    if(currentLevel < minLevel) {
-      currentLevel = minLevel;
-    }
-    
-    if(ir_receivedCode == ircode_volumeUp || ir_receivedCode == ircode_volumeDown) {
+      
+      if(ir_receivedCode == ircode_volumeUp) {
+        Serial.println("Step Volume Up");
+        currentLevel += levelStep;
+      }
+      if(ir_receivedCode == ircode_volumeDown) {
+        Serial.println("Step Volume Down");
+        currentLevel -= levelStep;
+      }
+      if(currentLevel > maxLevel) {
+        currentLevel = maxLevel;
+      }
+      if(currentLevel < minLevel) {
+        currentLevel = minLevel;
+      }
+      
       Serial.println("Send command to set level: ");
       Serial.println(currentLevel);
       if (client.connected()) {
@@ -229,35 +226,36 @@ void loop() {
                "Content-Length: 16\r\n\r\n" +
                "{\"level\":" + currentLevel + "}\r\n\r\n");
       }
-    }
-    client.keepAlive();
-    
-    // wait for data to be available
-    unsigned long timeout = millis();
-    while (client.available() == 0) {
-      if (millis() - timeout > response_timeout) {
-        Serial.println(">>> Client Timeout !");
-        lastLevelChange = 0; //Fetch settings again, maybe they are faulty?
-        client.stop();
-        return;
+      client.keepAlive();
+      
+      // wait for data to be available
+      unsigned long timeout = millis();
+      while (client.available() == 0) {
+        if (millis() - timeout > response_timeout) {
+          Serial.println(">>> Client Timeout !");
+          lastLevelChange = 0; //Fetch settings again, maybe they are faulty?
+          client.stop();
+          return;
+        }
       }
-    }
-    
-    if(client.available()) {
-      String status = client.readStringUntil('\r');
-      if (!status.equals("HTTP/1.1 200 OK")) {
-        Serial.print(F("Unexpected response: "));
-        Serial.println(status);
-        lastLevelChange = 0; //Fetch settings again, maybe they are faulty?
-        client.stop();
-        return;
+      
+      if(client.available()) {
+        String status = client.readStringUntil('\r');
+        if (!status.equals("HTTP/1.1 200 OK")) {
+          Serial.print(F("Unexpected response: "));
+          Serial.println(status);
+          lastLevelChange = 0; //Fetch settings again, maybe they are faulty?
+          client.stop();
+          return;
+        }
       }
+      //Throw away rest of the response
+      while (client.available()) {client.read();}
+      
+      client.keepAlive();
+      lastLevelChange = millis();
     }
-    //Throw away rest of the response
-    while (client.available()) {client.read();}
     
-    client.keepAlive();
-    lastLevelChange = millis();
   }
   yield();  // prevent watchdog (WDT) reset
 }
